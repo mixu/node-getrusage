@@ -13,39 +13,49 @@
 
 using namespace v8;
 
-double getcputime(void) {
+double getsystime(void) {
     struct timeval tim;
     struct rusage ru;
-    
+
     getrusage(RUSAGE_SELF, &ru);
-    
-    tim = ru.ru_utime;
-    double t=(double)tim.tv_sec + (double)tim.tv_usec / 1000000.0;
-    tim=ru.ru_stime;        
-    t+=(double)tim.tv_sec + (double)tim.tv_usec / 1000000.0;        
+
+    tim = ru.ru_stime;
+    double t = ( (double) tim.tv_sec * 1000000.0) + (double)tim.tv_usec;
     return t;
-} 
+}
 
 double getusertime(void) {
     struct timeval tim;
     struct rusage ru;
-    
+
     getrusage(RUSAGE_SELF, &ru);
-    
-    tim = ru.ru_stime;
-    double t=(double)tim.tv_sec + (double)tim.tv_usec / 1000000.0;
-    tim=ru.ru_stime;        
-    t+=(double)tim.tv_sec + (double)tim.tv_usec / 1000000.0;        
+
+    tim = ru.ru_utime;
+    double t = ( (double) tim.tv_sec * 1000000.0) + (double)tim.tv_usec;
     return t;
-} 
+}
 
+double getnow(void) {
+    struct timeval tim;
 
-Handle<Value> GetCPUTime(const Arguments& args) {
-    return Number::New(getcputime());
+    int r = gettimeofday(&tim, NULL);
+    if(r < 0) {
+      return -1;
+    }
+
+    return (tim.tv_sec * 1000000.0) + tim.tv_usec;
+}
+
+Handle<Value> GetSysTime(const Arguments& args) {
+    return Number::New(getsystime());
 }
 
 Handle<Value> GetUserTime(const Arguments& args) {
     return Number::New(getusertime());
+}
+
+Handle<Value> GetTimeOfDay(const Arguments& args) {
+    return Number::New(getnow());
 }
 
 /**
@@ -58,14 +68,14 @@ Handle<Value> GetUsage(const Arguments& args) {
 
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
-    
+
     Local<Object> info = Object::New();
 
     //CPU Time
     static Persistent<String> c_time;
     double cpu_time;
-    c_time = NODE_PSYMBOL("cputime");
-    cpu_time = getcputime();
+    c_time = NODE_PSYMBOL("systime");
+    cpu_time = getsystime();
     //printf("getCPUTime: %f\n", cpu_time);
     info->Set(c_time, Number::New(cpu_time));
 
@@ -76,6 +86,11 @@ Handle<Value> GetUsage(const Arguments& args) {
     user_time = getusertime();
     //printf("getUSERTime: %f\n", user_time);
     info->Set(u_time, Number::New(user_time));
+
+    //timeofday
+//    static Persistent<String> now_time;
+//    now_time = NODE_PSYMBOL("timeofday");
+//    info->Set(now_time, Number::New(getnow()));
 
     //max resident set size
     static Persistent<String> max_rss;
@@ -148,7 +163,7 @@ Handle<Value> GetUsage(const Arguments& args) {
     info->Set(nivcsw, Number::New(ru.ru_nivcsw));
 
     return scope.Close(info);
-    
+
 }
 
 const char* ToCString(const v8::String::Utf8Value& value) {
@@ -157,9 +172,10 @@ const char* ToCString(const v8::String::Utf8Value& value) {
 
 extern "C" void init(Handle<Object> target) {
 	HandleScope scope;
-	
+
 	target->Set(String::New("usage"), FunctionTemplate::New(GetUsage)->GetFunction());
-	target->Set(String::New("getcputime"), FunctionTemplate::New(GetCPUTime)->GetFunction());
+	target->Set(String::New("getsystime"), FunctionTemplate::New(GetSysTime)->GetFunction());
 	target->Set(String::New("getusertime"), FunctionTemplate::New(GetUserTime)->GetFunction());
+  target->Set(String::New("gettimeofday"), FunctionTemplate::New(GetTimeOfDay)->GetFunction());
 }
 
