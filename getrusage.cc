@@ -14,14 +14,14 @@ Handle<Value> GetSysTime(const Arguments& args) {
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
 
-    return Number::New( (double)ru.ru_stime.tv_sec + (double)ru.ru_stime.tv_usec * 1e-6);
+    return Number::New( ru.ru_stime.tv_sec * 1e6 + ru.ru_stime.tv_usec );
 }
 
 Handle<Value> GetUserTime(const Arguments& args) {
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
 
-    return Number::New( (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec * 1e-6);
+    return Number::New( ru.ru_utime.tv_sec * 1e6 + ru.ru_utime.tv_usec);
 }
 
 Handle<Value> GetTimeOfDay(const Arguments& args) {
@@ -31,11 +31,11 @@ Handle<Value> GetTimeOfDay(const Arguments& args) {
     return Number::New(-1);
   }
 
-  return Number::New( (double) tim.tv_sec + (double)tim.tv_usec * 1e-6);
+  return Number::New( tim.tv_sec* 1e6 + tim.tv_usec);
 }
 
 static Handle<Value> timevalToNumber(struct timeval &tim) {
-  return Number::New((double)tim.tv_sec + (double)tim.tv_usec * 1e-6);
+  return Number::New( tim.tv_sec* 1e6 + tim.tv_usec );
 }
 
 Handle<Value> GetUsage(const Arguments& args) {
